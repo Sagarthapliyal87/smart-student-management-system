@@ -1,0 +1,13 @@
+const router = require('express').Router();
+const c = require('../controllers/aiController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+router.use(authenticate);
+router.get('/status', c.getStatus);
+router.post('/study-assistant', requireRole('STUDENT'), c.studyAssistant);
+router.post('/doubt-solver', requireRole('STUDENT'), c.doubtSolver);
+router.post('/notes-generator', requireRole('STUDENT', 'TEACHER'), c.notesGenerator);
+router.post('/question-generator', requireRole('TEACHER'), c.questionGenerator);
+router.post('/study-planner', requireRole('STUDENT'), c.studyPlanner);
+router.get('/performance-analysis', requireRole('STUDENT'), c.performanceAnalysis);
+module.exports = router;

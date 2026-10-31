@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const c = require('../controllers/documentController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+const { uploadDocument } = require('../middleware/upload');
+router.use(authenticate, requireRole('STUDENT'));
+router.post('/', uploadDocument.single('file'), c.uploadDocument);
+router.get('/my', c.getMyDocuments);
+router.delete('/:id', c.deleteDocument);
+module.exports = router;

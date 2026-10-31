@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const c = require('../controllers/reportController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+router.use(authenticate, requireRole('ADMIN'));
+router.get('/attendance', c.attendanceReport);
+router.get('/marks', c.marksReport);
+router.get('/fees', c.feesReport);
+router.get('/department', c.departmentReport);
+module.exports = router;

@@ -1,0 +1,17 @@
+const router = require('express').Router();
+const c = require('../controllers/academicController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+router.use(authenticate);
+router.get('/courses', c.listCourses);
+router.post('/courses', requireRole('ADMIN'), c.createCourse);
+router.put('/courses/:id', requireRole('ADMIN'), c.updateCourse);
+router.delete('/courses/:id', requireRole('ADMIN'), c.deleteCourse);
+router.get('/classes', c.listClasses);
+router.post('/classes', requireRole('ADMIN'), c.createClass);
+router.delete('/classes/:id', requireRole('ADMIN'), c.deleteClass);
+router.get('/classes/:id/students', requireRole('ADMIN', 'TEACHER'), c.classStudents);
+router.get('/subjects', c.listSubjects);
+router.post('/subjects', requireRole('ADMIN'), c.createSubject);
+router.delete('/subjects/:id', requireRole('ADMIN'), c.deleteSubject);
+module.exports = router;

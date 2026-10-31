@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const c = require('../controllers/timetableController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+router.use(authenticate);
+router.get('/my', c.getMyTimetable);
+router.get('/class/:classId', requireRole('ADMIN', 'TEACHER'), c.getClassTimetable);
+router.post('/', requireRole('ADMIN'), c.createSlot);
+router.delete('/:id', requireRole('ADMIN'), c.deleteSlot);
+module.exports = router;

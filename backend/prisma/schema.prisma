@@ -1,0 +1,393 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+}
+
+enum ExamType {
+  INTERNAL
+  MID_SEM
+  END_SEM
+  PRACTICAL
+  ASSIGNMENT
+}
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  LATE
+  CHECKED
+}
+
+enum FeeType {
+  TUITION
+  EXAM
+  HOSTEL
+  TRANSPORT
+}
+
+enum FeeStatus {
+  PAID
+  UNPAID
+  PARTIAL
+}
+
+enum NoticeTargetRole {
+  ALL
+  STUDENT
+  TEACHER
+  PARENT
+}
+
+enum DayOfWeek {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  phone        String?
+  profilePhoto String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student          Student?
+  teacher          Teacher?
+  parent           Parent?
+  noticesPosted    Notice[]       @relation("NoticePoster")
+  notifications    Notification[]
+  sentMessages     Message[]      @relation("MessageSender")
+  receivedMessages Message[]      @relation("MessageReceiver")
+
+  @@index([role])
+  @@map("users")
+}
+
+model Student {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rollNumber    String    @unique
+  classId       Int?
+  class         Class?    @relation(fields: [classId], references: [id], onDelete: SetNull)
+  admissionDate DateTime?
+  address       String?   @db.Text
+
+  parents     StudentParent[]
+  attendance  Attendance[]
+  marks       Mark[]
+  submissions Submission[]
+  fees        Fee[]
+  documents   Document[]
+
+  @@index([classId])
+  @@map("students")
+}
+
+model Teacher {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department  String
+  designation String?
+
+  subjects         TeacherSubject[]
+  attendanceMarked Attendance[]
+  marksEntered     Mark[]
+  assignments      Assignment[]
+  timetableSlots   Timetable[]
+  studyMaterials   StudyMaterial[]
+
+  @@map("teachers")
+}
+
+model Parent {
+  id         Int     @id @default(autoincrement())
+  userId     Int     @unique
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occupation String?
+
+  children StudentParent[]
+
+  @@map("parents")
+}
+
+model StudentParent {
+  studentId Int
+  parentId  Int
+  relation  String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent    Parent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, parentId])
+  @@map("student_parent")
+}
+
+model Course {
+  id            Int     @id @default(autoincrement())
+  name          String
+  durationYears Int
+  classes       Class[]
+
+  @@map("courses")
+}
+
+model Class {
+  id       Int    @id @default(autoincrement())
+  courseId Int
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  semester Int
+  section  String
+
+  students  Student[]
+  subjects  Subject[]
+  timetable Timetable[]
+  notices   Notice[]
+
+  @@unique([courseId, semester, section])
+  @@map("classes")
+}
+
+model Subject {
+  id      Int    @id @default(autoincrement())
+  name    String
+  code    String @unique
+  classId Int
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  teachers       TeacherSubject[]
+  attendance     Attendance[]
+  marks          Mark[]
+  assignments    Assignment[]
+  timetable      Timetable[]
+  messages       Message[]
+  studyMaterials StudyMaterial[]
+  exams          Exam[]
+
+  @@index([classId])
+  @@map("subjects")
+}
+
+model TeacherSubject {
+  teacherId Int
+  subjectId Int
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@id([teacherId, subjectId])
+  @@map("teacher_subject")
+}
+
+model Timetable {
+  id         Int       @id @default(autoincrement())
+  classId    Int
+  class      Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId  Int
+  subject    Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherId  Int
+  teacher    Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  dayOfWeek  DayOfWeek
+  startTime  String
+  endTime    String
+  roomNumber String?
+
+  @@index([classId, dayOfWeek])
+  @@map("timetable")
+}
+
+model Attendance {
+  id         Int              @id @default(autoincrement())
+  studentId  Int
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId  Int
+  subject    Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  date       DateTime         @db.Date
+  status     AttendanceStatus
+  markedById Int
+  markedBy   Teacher          @relation(fields: [markedById], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+
+  @@unique([studentId, subjectId, date])
+  @@map("attendance")
+}
+
+model Mark {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId   Int
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  examType    ExamType
+  score       Float
+  maxScore    Float
+  enteredById Int
+  enteredBy   Teacher  @relation(fields: [enteredById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([studentId, subjectId])
+  @@map("marks")
+}
+
+model Assignment {
+  id             Int      @id @default(autoincrement())
+  subjectId      Int
+  subject        Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherId      Int
+  teacher        Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  title          String
+  description    String   @db.Text
+  attachmentPath String?
+  deadline       DateTime
+  maxMarks       Float
+  createdAt      DateTime @default(now())
+
+  submissions Submission[]
+
+  @@map("assignments")
+}
+
+model Submission {
+  id           Int              @id @default(autoincrement())
+  assignmentId Int
+  assignment   Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId    Int
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  filePath     String?
+  submittedAt  DateTime?
+  status       SubmissionStatus @default(PENDING)
+  marksAwarded Float?
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
+
+model StudyMaterial {
+  id         Int      @id @default(autoincrement())
+  subjectId  Int
+  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherId  Int
+  teacher    Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  title      String
+  filePath   String
+  uploadedAt DateTime @default(now())
+
+  @@map("study_materials")
+}
+
+model Document {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title      String
+  filePath   String
+  category   String
+  uploadedAt DateTime @default(now())
+
+  @@map("documents")
+}
+
+model Fee {
+  id        Int       @id @default(autoincrement())
+  studentId Int
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeType   FeeType
+  amount    Decimal   @db.Decimal(10, 2)
+  dueDate   DateTime  @db.Date
+  status    FeeStatus @default(UNPAID)
+
+  payments FeePayment[]
+
+  @@index([studentId])
+  @@map("fees")
+}
+
+model FeePayment {
+  id            Int      @id @default(autoincrement())
+  feeId         Int
+  fee           Fee      @relation(fields: [feeId], references: [id], onDelete: Cascade)
+  amountPaid    Decimal  @db.Decimal(10, 2)
+  paidAt        DateTime @default(now())
+  receiptNumber String   @unique
+
+  @@map("fee_payments")
+}
+
+model Notice {
+  id            Int              @id @default(autoincrement())
+  title         String
+  content       String           @db.Text
+  postedById    Int
+  postedBy      User             @relation("NoticePoster", fields: [postedById], references: [id], onDelete: Cascade)
+  targetRole    NoticeTargetRole @default(ALL)
+  targetClassId Int?
+  targetClass   Class?           @relation(fields: [targetClassId], references: [id], onDelete: SetNull)
+  createdAt     DateTime         @default(now())
+
+  @@map("notices")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId Int
+  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  subjectId  Int?
+  subject    Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  content    String   @db.Text
+  sentAt     DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Exam {
+  id        Int      @id @default(autoincrement())
+  subjectId Int
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title     String
+  examType  ExamType
+  examDate  DateTime
+  startTime String?
+  room      String?
+
+  @@index([examDate])
+  @@map("exams")
+}

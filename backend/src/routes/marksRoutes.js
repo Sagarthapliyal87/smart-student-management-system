@@ -1,0 +1,11 @@
+const router = require('express').Router();
+const c = require('../controllers/marksController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+router.use(authenticate);
+router.post('/', requireRole('TEACHER'), c.enterMarks);
+router.get('/target', requireRole('STUDENT', 'PARENT'), c.targetCalculator);
+router.get('/subject/:subjectId', requireRole('TEACHER'), c.listBySubject);
+router.get('/student/:studentId', requireRole('ADMIN', 'TEACHER', 'STUDENT', 'PARENT'), c.getStudentMarks);
+router.put('/:id', requireRole('TEACHER'), c.updateMark);
+module.exports = router;

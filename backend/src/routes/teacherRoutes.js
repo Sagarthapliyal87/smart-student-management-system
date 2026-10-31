@@ -1,0 +1,13 @@
+const router = require('express').Router();
+const c = require('../controllers/teacherController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+router.use(authenticate);
+router.get('/me/subjects', requireRole('TEACHER'), c.mySubjects);
+router.get('/', requireRole('ADMIN'), c.listTeachers);
+router.post('/', requireRole('ADMIN'), c.createTeacher);
+router.put('/:id', requireRole('ADMIN'), c.updateTeacher);
+router.delete('/:id', requireRole('ADMIN'), c.deactivateTeacher);
+router.post('/:id/subjects', requireRole('ADMIN'), c.assignSubject);
+router.delete('/:id/subjects/:subjectId', requireRole('ADMIN'), c.unassignSubject);
+module.exports = router;

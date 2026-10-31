@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const c = require('../controllers/feeController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+router.use(authenticate);
+router.post('/', requireRole('ADMIN'), c.createFee);
+router.get('/all', requireRole('ADMIN'), c.listAllFees);
+router.get('/student/:studentId', requireRole('ADMIN', 'STUDENT', 'PARENT'), c.getStudentFees);
+router.post('/:id/pay', requireRole('ADMIN'), c.recordPayment);
+module.exports = router;

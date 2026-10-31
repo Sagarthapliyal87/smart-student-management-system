@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const c = require('../controllers/studyMaterialController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+const { uploadNote } = require('../middleware/upload');
+router.use(authenticate);
+router.post('/', requireRole('TEACHER'), uploadNote.single('file'), c.uploadMaterial);
+router.get('/subject/:subjectId', c.listBySubject);
+router.delete('/:id', requireRole('TEACHER'), c.deleteMaterial);
+module.exports = router;

@@ -1,0 +1,13 @@
+const router = require('express').Router();
+const c = require('../controllers/assignmentController');
+const { authenticate } = require('../middleware/auth');
+const { requireRole } = require('../middleware/roleCheck');
+const { uploadAssignment } = require('../middleware/upload');
+router.use(authenticate);
+router.post('/', requireRole('TEACHER'), uploadAssignment.single('attachment'), c.createAssignment);
+router.get('/mine', requireRole('TEACHER'), c.listMine);
+router.get('/my', requireRole('STUDENT'), c.getMyAssignments);
+router.put('/submissions/:id/grade', requireRole('TEACHER'), c.gradeSubmission);
+router.post('/:id/submit', requireRole('STUDENT'), uploadAssignment.single('file'), c.submitAssignment);
+router.get('/:id/submissions', requireRole('ADMIN', 'TEACHER'), c.listSubmissions);
+module.exports = router;
